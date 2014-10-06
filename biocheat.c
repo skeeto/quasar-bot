@@ -103,10 +103,10 @@ int main(int argc, char **argv)
         GetCursorPos(&p);
         int n = read_number();
         if (n > 0) {
-            printf("%d\n", n);
+            printf("%d ", n);
             MAP[n]();
             toggle = 0;
-            Sleep(3000);
+            Sleep(3500);
         } else if ((toggle % 2) == 0) {
             payout();
             toggle++;
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
         } else {
             play_again();
             toggle++;
-            Sleep(3000);
+            Sleep(3500);
         }
     }
     return 0;
