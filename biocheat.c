@@ -1,59 +1,123 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <windows.h>
 
-SOCKET remote()
+#define WHITE  0xffffff
+#define GREEN  0x00e60c
+#define YELLOW 0x46ffff
+
+const struct {
+    int value, x, y;
+} PIXELS[] = {
+    {1,  51, 18},
+    {4,  40, 36},
+    {7,  64, 20},
+    {9,  76, 19},
+    {10, 88, 20},
+    {11, 39, 18},
+    {12, 86, 49},
+    {13, 38, 22},
+    {14, 78, 17},
+    {16, 88, 43},
+    {2,  75, 17},
+    {3,  67, 19},
+    {15, 83, 11},
+    {6,  77, 35},
+    {8,  38, 16},
+    {5,  50, 28}
+};
+
+int read_number()
 {
-    WSADATA data;
-    if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
-        fprintf(stderr, "startup failed\n");
-        exit(EXIT_FAILURE);
+    int basex = 674, basey = 545;
+    HDC hdc = GetWindowDC(GetDesktopWindow());
+    for (int i = 0; i < sizeof(PIXELS) / sizeof(*PIXELS); i++) {
+        if (GetPixel(hdc, basex + PIXELS[i].x, basey + PIXELS[i].y) == WHITE)
+            return PIXELS[i].value;
     }
-
-    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sock == INVALID_SOCKET) {
-        fprintf(stderr, "sock error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    struct sockaddr_in server = {0};
-    server.sin_family = 2;
-    server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons(2000);
-    if (bind(sock, (struct sockaddr *) &server, sizeof(server)) != 0) {
-        fprintf(stderr, "bind error\n");
-        exit(EXIT_FAILURE);
-    }
-    if (listen(sock, 2) != 0) {
-        fprintf(stderr, "listen error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    struct sockaddr_in client;
-    int c = sizeof(client);
-    SOCKET csock = accept(sock, (struct sockaddr *)&client, &c);
-    if (csock == INVALID_SOCKET) {
-        fprintf(stderr, "accpet error %ld\n", WSAGetLastError());
-        exit(EXIT_FAILURE);
-    }
-    //send(csock, msg, s, 0);
-    return csock;
+    return 0;
 }
 
-#define WHITE 0xffffff
+void move(int x, int y)
+{
+    x = (x * 65535) / 1680;
+    y = (y * 65535) / 1050;
+    INPUT m[] = {
+        {0, {{x, y, 0, MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE}}}
+    };
+    SendInput(sizeof(m) / sizeof(*m), m, sizeof(*m));
+}
+
+void click(int x, int y)
+{
+    for (int i = 25; i > 0; i--) {
+        move(x - i, y - i);
+        Sleep(10);
+    }
+    move(x, y);
+    INPUT m[] = {
+        {0, {{0, 0, 0, MOUSEEVENTF_LEFTDOWN}}},
+        {0, {{0, 0, 0, MOUSEEVENTF_LEFTUP}}}
+    };
+    //SendInput(sizeof(m) / sizeof(*m), m, sizeof(*m));
+    Sleep(200);
+    SendInput(1, m+0, sizeof(*m));
+    Sleep(200);
+    SendInput(1, m+1, sizeof(*m));
+}
+
+static inline void go_high()
+{
+    printf("high\n");
+    click(470, 740);
+}
+
+static inline void go_low()
+{
+    printf("low\n");
+    click(960, 740);
+}
+
+static inline void payout()
+{
+    printf("payout\n");
+    click(725, 740);
+}
+
+static inline void play_again()
+{
+    printf("play again\n");
+    click(720, 490);
+}
+
+void (*MAP[])() = {
+    NULL,
+    go_low, go_low, go_high, go_high, go_high, go_low, go_low, go_low,
+    go_high, go_high, go_high, go_high, go_low, go_low, go_low, go_high
+};
 
 int main(int argc, char **argv)
 {
+    unsigned toggle = 0;
     while (1) {
         POINT p;
         GetCursorPos(&p);
-        //GetDC(GetDesktopWindow())
-        COLORREF color = GetPixel(GetWindowDC(GetDesktopWindow()), p.x, p.y);
-        color = htonl(color) >> 8;
-        printf("%ld %ld #%06lx\n", p.x, p.y, color);
-        Sleep(100);
+        //HDC hdc = GetWindowDC(GetDesktopWindow());
+        //COLORREF color = GetPixel(hdc, p.x, p.y);
+        //printf("%ld %ld #%06lx\n", p.x, p.y, color);
+        int n = read_number();
+        if (n > 0) {
+            printf("%d\n", n);
+            MAP[n]();
+            toggle = 0;
+        } else if ((toggle % 2) == 0) {
+            payout();
+            toggle++;
+        } else {
+            play_again();
+            toggle++;
+        }
+        Sleep(4000);
     }
     return 0;
 }
