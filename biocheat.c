@@ -59,7 +59,6 @@ void click(int x, int y)
         {0, {{0, 0, 0, MOUSEEVENTF_LEFTDOWN}}},
         {0, {{0, 0, 0, MOUSEEVENTF_LEFTUP}}}
     };
-    //SendInput(sizeof(m) / sizeof(*m), m, sizeof(*m));
     Sleep(200);
     SendInput(1, m+0, sizeof(*m));
     Sleep(200);
@@ -102,22 +101,21 @@ int main(int argc, char **argv)
     while (1) {
         POINT p;
         GetCursorPos(&p);
-        //HDC hdc = GetWindowDC(GetDesktopWindow());
-        //COLORREF color = GetPixel(hdc, p.x, p.y);
-        //printf("%ld %ld #%06lx\n", p.x, p.y, color);
         int n = read_number();
         if (n > 0) {
             printf("%d\n", n);
             MAP[n]();
             toggle = 0;
+            Sleep(3000);
         } else if ((toggle % 2) == 0) {
             payout();
             toggle++;
+            Sleep(1000);
         } else {
             play_again();
             toggle++;
+            Sleep(3000);
         }
-        Sleep(4000);
     }
     return 0;
 }
